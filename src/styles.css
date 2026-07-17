@@ -61,6 +61,7 @@ img { max-width: 100%; }
 .wordmark { border: 0; background: none; padding: 4px 0; color: var(--text); font: 800 18px/1 'Manrope', sans-serif; letter-spacing: -.06em; }
 .wordmark span, .splash-logo span { color: var(--lime); }
 .app-header__right { display: flex; align-items: center; gap: 12px; }
+.gym-controls-trigger { width: 35px; height: 35px; border-radius: 50%; color: var(--lime); }
 .avatar { width: 35px; height: 35px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface-soft); display: grid; place-items: center; font-weight: 800; font-size: 13px; }
 .save-status { display: flex; align-items: center; gap: 4px; color: var(--text-muted); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; }
 .save-status--error { color: var(--danger); }
@@ -327,6 +328,37 @@ h1, h2, h3 { font-family: 'Manrope', ui-sans-serif, sans-serif; }
 .rest-timer strong { font: 800 18px 'Manrope', sans-serif; }
 .rest-timer button { height: 35px; padding: 0 10px; border: 0; border-radius: 9px; background: var(--surface-soft); font-size: 9px; font-weight: 800; }
 .rest-timer button:last-child { background: var(--lime); color: var(--lime-ink); }
+
+.gym-controls { position: fixed; z-index: 80; left: 10px; right: 10px; bottom: calc(90px + env(safe-area-inset-bottom)); width: min(500px, calc(100vw - 20px)); max-height: min(680px, calc(100vh - 120px - env(safe-area-inset-top))); margin: 0 auto; padding: 18px; border: 1px solid var(--line); border-radius: 24px; background: var(--surface-elevated); box-shadow: 0 28px 90px rgba(0,0,0,.58); overflow-y: auto; opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(22px) scale(.98); transition: opacity .2s ease, transform .2s ease, visibility .2s; }
+.gym-controls--open { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(0) scale(1); }
+.gym-controls__header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 15px; }
+.gym-controls__header h2 { margin: 0; font-size: 25px; letter-spacing: -.045em; }
+.gym-control-section { padding: 15px; border: 1px solid var(--line); border-radius: 18px; background: var(--surface); }
+.gym-control-section + .gym-control-section { margin-top: 10px; }
+.gym-control-title { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.gym-control-title > span { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; color: var(--lime); background: color-mix(in srgb, var(--lime) 10%, var(--surface-soft)); }
+.gym-control-title > div { display: flex; flex-direction: column; gap: 2px; }
+.gym-control-title strong { font-size: 13px; }
+.gym-control-title small { color: var(--text-muted); font-size: 9px; }
+.rest-presets--compact { grid-template-columns: repeat(5, 1fr); gap: 5px; margin-top: 0; }
+.rest-presets--compact button { min-width: 0; min-height: 41px; padding: 0 2px; font-size: 10px; }
+.gym-control-title .spotify-icon { color: #1ed760; background: color-mix(in srgb, #1ed760 12%, var(--surface-soft)); }
+.spotify-embed { display: block; border: 0; border-radius: 12px; background: #121212; }
+.spotify-actions, .spotify-setup-actions { display: flex; align-items: center; gap: 7px; margin-top: 10px; }
+.spotify-actions .button, .spotify-setup-actions .button { min-height: 39px; padding: 0 12px; font-size: 10px; }
+.spotify-actions a, .spotify-setup-actions a { min-height: 39px; display: inline-flex; align-items: center; gap: 6px; padding: 0 10px; border: 1px solid var(--line); border-radius: 11px; color: var(--text-soft); font-size: 10px; font-weight: 800; text-decoration: none; }
+.spotify-actions .icon-button { margin-left: auto; width: 39px; height: 39px; color: var(--danger); }
+.spotify-help { margin: 0 0 12px; color: var(--text-muted); font-size: 10px; line-height: 1.5; }
+.spotify-setup-actions { justify-content: flex-end; }
+.spotify-setup-actions a { margin-right: auto; }
+.field-error { margin: 7px 0 0; color: var(--danger); font-size: 9px; }
+.spotify-offline-note { margin: 11px 1px 0; color: var(--text-muted); font-size: 8px; line-height: 1.4; }
+
+@media (max-width: 390px) {
+  .save-status { display: none; }
+  .rest-presets--compact { grid-template-columns: repeat(3, 1fr); }
+  .spotify-actions, .spotify-setup-actions { flex-wrap: wrap; }
+}
 
 .progress-badge { display: flex; align-items: center; gap: 5px; padding: 7px 9px; border-radius: 10px; background: color-mix(in srgb, var(--lime) 12%, var(--surface)); color: var(--lime); font-size: 10px; font-weight: 800; }
 .chart-card { padding: 17px 14px 10px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 21px; background: var(--surface); overflow: hidden; }
