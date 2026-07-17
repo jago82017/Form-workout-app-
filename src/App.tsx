@@ -13,7 +13,6 @@ import Profile from './screens/Profile';
 export default function App() {
   const { tab, loading } = useApp();
   const [online, setOnline] = useState(navigator.onLine);
-  const [gymControlsOpen, setGymControlsOpen] = useState(false);
   useEffect(() => {
     const update = () => setOnline(navigator.onLine);
     window.addEventListener('online', update); window.addEventListener('offline', update);
@@ -24,7 +23,7 @@ export default function App() {
 
   return <div className="app-shell">
     {!online && <div className="offline-banner"><CloudOff size={15} /> Offline mode · your workout will still save</div>}
-    <AppHeader onOpenGymControls={() => setGymControlsOpen(true)} />
+    <AppHeader />
     <div className="screen-wrap" key={tab}>
       {tab === 'today' && <Today />}
       {tab === 'plans' && <Plans />}
@@ -33,7 +32,7 @@ export default function App() {
       {tab === 'profile' && <Profile />}
     </div>
     <RestTimer />
-    <GymControls open={gymControlsOpen} onClose={() => setGymControlsOpen(false)} />
+    <GymControls />
     <BottomNav />
     <Toast />
   </div>;
