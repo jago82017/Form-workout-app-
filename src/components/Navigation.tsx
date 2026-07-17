@@ -1,7 +1,7 @@
-import { BarChart3, CalendarDays, Dumbbell, House, Music2, UserRound } from 'lucide-react';
+import { BarChart3, CalendarDays, Dumbbell, House, UserRound } from 'lucide-react';
 import { useApp } from '../AppContext';
 import type { Tab } from '../types';
-import { IconButton, SaveStatus } from './UI';
+import { SaveStatus } from './UI';
 
 const tabs: Array<{ id: Tab; label: string; icon: typeof House }> = [
   { id: 'today', label: 'Today', icon: House },
@@ -11,12 +11,12 @@ const tabs: Array<{ id: Tab; label: string; icon: typeof House }> = [
   { id: 'profile', label: 'Profile', icon: UserRound },
 ];
 
-export function AppHeader({ onOpenGymControls }: { onOpenGymControls: () => void }) {
+export function AppHeader() {
   const { state, setTab } = useApp();
   return (
     <header className="app-header">
       <button className="wordmark" onClick={() => setTab('today')} aria-label="FORM home">F<span>O</span>RM</button>
-      <div className="app-header__right"><SaveStatus /><IconButton label="Open music and rest timer" className="gym-controls-trigger" onClick={onOpenGymControls}><Music2 size={19} /></IconButton><button className="avatar" onClick={() => setTab('profile')} aria-label="Open profile">{state.profile.name.slice(0, 1).toUpperCase()}</button></div>
+      <div className="app-header__right"><SaveStatus /><button className="avatar" onClick={() => setTab('profile')} aria-label="Open profile">{state.profile.name.slice(0, 1).toUpperCase()}</button></div>
     </header>
   );
 }
