@@ -4,7 +4,7 @@ import { useApp } from '../AppContext';
 import { seedState } from '../data';
 import { clearState } from '../db';
 import type { AppState, Goal, ThemeMode } from '../types';
-import { downloadFile, sessionDuration, sessionVolume } from '../utils';
+import { downloadFile, sessionVolume } from '../utils';
 import { Button, ConfirmDialog, SectionTitle } from '../components/UI';
 
 const goals: Goal[] = ['Build muscle', 'Gain strength', 'Lose fat', 'Improve fitness', 'General health'];
@@ -13,6 +13,7 @@ export default function Profile() {
   const { state, setState, showToast, saveStatus, exerciseNames } = useApp();
   const [online, setOnline] = useState(navigator.onLine);
   const [resetOpen, setResetOpen] = useState(false);
+  const [startFreshOpen, setStartFreshOpen] = useState(false);
   const importInput = useRef<HTMLInputElement>(null);
   const completedSets = state.history.flatMap((session) => session.exercises).flatMap((exercise) => exercise.sets).filter((set) => set.completed).length;
 
@@ -54,6 +55,12 @@ export default function Profile() {
     await clearState(); setState(structuredClone(seedState)); setResetOpen(false); showToast('Sample data restored');
   };
 
+  const startFresh = () => {
+    setState((current) => ({ ...current, history: [], activeWorkout: null, bodyweight: [], photos: [], steps: 0 }));
+    setStartFreshOpen(false);
+    showToast('Activity cleared — you’re ready to start fresh');
+  };
+
   return <main className="screen profile-screen">
     <div className="profile-hero"><div className="profile-avatar">{state.profile.name.slice(0, 1).toUpperCase()}<span /></div><div><p className="eyebrow">FORM MEMBER</p><h1>{state.profile.name}</h1><span>{state.profile.goal} · {state.profile.experience}</span></div></div>
     <div className="profile-stats"><div><strong>{state.history.length}</strong><small>WORKOUTS</small></div><div><strong>{completedSets}</strong><small>SETS</small></div><div><strong>{Math.round(state.history.reduce((sum, session) => sum + sessionVolume(session), 0) / 1000)}k</strong><small>VOLUME</small></div></div>
@@ -80,9 +87,11 @@ export default function Profile() {
     </section>
 
     <section className="status-card"><span className={online ? 'online-dot' : 'offline-dot'}>{online ? <Check size={15} /> : <CloudOff size={15} />}</span><div><strong>{online ? 'FORM is ready' : 'You’re offline — keep training'}</strong><small>{saveStatus === 'saved' ? 'Every change is saved automatically' : saveStatus === 'saving' ? 'Saving your latest changes…' : 'Could not save the latest change'}</small></div></section>
+    <Button variant="danger" className="full-button" onClick={() => setStartFreshOpen(true)}><RefreshCcw size={17} /> Start fresh — clear activity</Button>
     <button className="reset-button" onClick={() => setResetOpen(true)}><RefreshCcw size={17} /> Reset to sample data</button>
-    <p className="app-version">FORM 1.0 · MADE FOR MOMENTUM</p>
+    <p className="app-version">FORM 1.1 · MADE FOR MOMENTUM</p>
 
     <ConfirmDialog open={resetOpen} onClose={() => setResetOpen(false)} title="Reset FORM?" body="Your routines, history, measurements, and settings will be replaced with the original sample data. Export a backup first if you want to keep them." confirmLabel="Reset everything" destructive onConfirm={reset} />
+    <ConfirmDialog open={startFreshOpen} onClose={() => setStartFreshOpen(false)} title="Start completely fresh?" body="This removes all workout history, personal records, bodyweight entries, progress photos, and the active workout. Your profile, routines, and weekly schedule will stay." confirmLabel="Clear all activity" destructive onConfirm={startFresh} />
   </main>;
 }
