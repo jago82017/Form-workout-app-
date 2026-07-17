@@ -1,0 +1,24 @@
+{
+  "name": "FORM — Workout Tracker",
+  "short_name": "FORM",
+  "description": "A focused workout tracker built for the gym.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111210",
+  "theme_color": "#111210",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icons/form-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/form-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
