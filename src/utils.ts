@@ -1,5 +1,12 @@
 import type { AppState, PersonalRecord, WorkoutSession } from './types';
 
+export interface StrengthScore {
+  score: number;
+  level: string;
+  trackedPatterns: number;
+  totalPatterns: number;
+}
+
 export const uid = (prefix = 'id') => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 export const estimate1RM = (weight: number, reps: number) => {
@@ -60,6 +67,46 @@ export const wouldBeRecord = (state: AppState, exerciseId: string, weight: numbe
     .filter((set) => set.completed)
     .reduce((max, set) => Math.max(max, estimate1RM(set.weight, set.reps)), 0);
   return estimate1RM(weight, reps) > best;
+};
+
+/**
+ * A simple, transparent 0–100 score based on the user's best estimated 1RM
+ * relative to their recorded bodyweight across five movement patterns. It is
+ * a personal progress indicator, not a medical or competitive ranking.
+ */
+export const calculateStrengthScore = (state: AppState): StrengthScore => {
+  const bodyweight = state.bodyweight.at(-1)?.weight || 0;
+  const patterns = [
+    { target: 1.25, points: 20, exercises: [{ id: 'bench-press' }, { id: 'incline-db', multiplier: 2 }, { id: 'overhead-press', target: 0.75 }] },
+    { target: 1.75, points: 25, exercises: [{ id: 'back-squat' }, { id: 'front-squat', target: 1.45 }, { id: 'leg-press', target: 3 }] },
+    { target: 1.7, points: 25, exercises: [{ id: 'deadlift', target: 2 }, { id: 'romanian-deadlift', target: 1.7 }, { id: 'hip-thrust', target: 2 }] },
+    { target: 1.2, points: 15, exercises: [{ id: 'barbell-row' }, { id: 'seated-row', target: 1.1 }, { id: 'lat-pulldown', target: 1.2 }] },
+    { target: 0.75, points: 15, exercises: [{ id: 'overhead-press' }] },
+  ];
+  if (!bodyweight) return { score: 0, level: 'Start logging', trackedPatterns: 0, totalPatterns: patterns.length };
+
+  const bestByExercise = new Map<string, number>();
+  state.history.forEach((session) => session.exercises.forEach((exercise) => exercise.sets.filter((set) => set.completed).forEach((set) => {
+    bestByExercise.set(exercise.exerciseId, Math.max(bestByExercise.get(exercise.exerciseId) || 0, estimate1RM(set.weight, set.reps)));
+  })));
+
+  let earned = 0;
+  let available = 0;
+  let trackedPatterns = 0;
+  patterns.forEach((pattern) => {
+    const bestRatio = Math.max(...pattern.exercises.map((exercise) => {
+      const best = bestByExercise.get(exercise.id) || 0;
+      return best ? (best * (exercise.multiplier || 1)) / (bodyweight * (exercise.target || pattern.target)) : 0;
+    }));
+    if (!bestRatio) return;
+    trackedPatterns += 1;
+    available += pattern.points;
+    earned += Math.min(1, bestRatio) * pattern.points;
+  });
+
+  const score = available ? Math.round((earned / available) * 100) : 0;
+  const level = score >= 90 ? 'Excellent' : score >= 75 ? 'Strong' : score >= 55 ? 'Solid' : score >= 35 ? 'Building' : score ? 'Starting out' : 'Start logging';
+  return { score, level, trackedPatterns, totalPatterns: patterns.length };
 };
 
 export const isThisWeek = (date: string) => {

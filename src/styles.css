@@ -274,11 +274,24 @@ h1, h2, h3 { font-family: 'Manrope', ui-sans-serif, sans-serif; }
 .exercise-title p { margin: 0 0 5px; color: var(--text-muted); font-size: 8px; font-weight: 800; letter-spacing: .11em; }
 .exercise-title h2 { margin: 0 0 5px; font-size: 27px; line-height: 1.05; letter-spacing: -.055em; }
 .exercise-title small { color: var(--text-muted); font-size: 10px; }
+.swap-exercise { width: 100%; min-height: 42px; display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 7px; margin-top: 15px; padding: 0 12px; border: 1px dashed var(--line); border-radius: 12px; background: transparent; color: var(--text-soft); text-align: left; font-size: 10px; font-weight: 800; }
+.swap-exercise svg { color: var(--lime); }
+.swap-exercise span { min-width: 0; overflow: hidden; color: var(--text-muted); font-size: 9px; font-weight: 500; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 .instructions { margin: 16px 0 20px; border: 1px solid var(--line); border-radius: 13px; background: var(--surface); overflow: hidden; }
 .instructions summary { min-height: 42px; display: flex; align-items: center; gap: 7px; padding: 0 12px; color: var(--text-soft); font-size: 10px; font-weight: 800; list-style: none; cursor: pointer; }
 .instructions summary svg:last-child { margin-left: auto; transition: transform .2s; }
 .instructions[open] summary svg:last-child { transform: rotate(180deg); }
 .instructions p { margin: 0; padding: 0 12px 13px; color: var(--text-muted); font-size: 11px; line-height: 1.55; }
+.setup-note-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: start; gap: 10px; margin: -8px 0 20px; padding: 12px; border: 1px solid color-mix(in srgb, var(--lime) 28%, var(--line)); border-radius: 13px; background: color-mix(in srgb, var(--lime) 7%, var(--surface)); }
+.setup-note-card > svg { margin-top: 1px; color: var(--lime); }
+.setup-note-card > div { min-width: 0; }
+.setup-note-card p { margin: 0 0 4px; color: var(--lime); font-size: 8px; font-weight: 900; letter-spacing: .12em; }
+.setup-note-card strong { display: block; color: var(--text-soft); font-size: 10px; line-height: 1.5; font-weight: 600; white-space: pre-wrap; }
+.setup-note-card button { border: 0; padding: 2px 0; background: transparent; color: var(--lime); font-size: 9px; font-weight: 800; }
+.add-setup-note { width: 100%; min-height: 48px; display: grid; grid-template-columns: auto auto 1fr; align-items: center; gap: 8px; margin: -8px 0 20px; padding: 0 12px; border: 1px dashed var(--line); border-radius: 13px; background: transparent; color: var(--text-soft); text-align: left; font-size: 10px; font-weight: 800; }
+.add-setup-note svg { color: var(--lime); }
+.add-setup-note span { min-width: 0; overflow: hidden; color: var(--text-muted); font-size: 9px; font-weight: 500; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
+.field-help { display: block; margin-top: 6px; color: var(--text-muted); font-size: 9px; line-height: 1.4; }
 
 .set-table { margin: 0 -7px; }
 .set-table__head { display: grid; grid-template-columns: 38px minmax(55px, .9fr) minmax(46px, .7fr) minmax(42px, .6fr) 42px 37px; gap: 4px; padding: 0 8px 7px; color: var(--text-muted); font-size: 7px; font-weight: 800; letter-spacing: .08em; text-align: center; }
@@ -301,6 +314,13 @@ h1, h2, h3 { font-family: 'Manrope', ui-sans-serif, sans-serif; }
 .set-tools .icon-button { width: 31px; height: 35px; border-radius: 8px; }
 .set-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; margin-top: 7px; }
 .set-actions button { min-height: 41px; display: flex; align-items: center; justify-content: center; gap: 7px; border: 1px dashed var(--line); border-radius: 11px; background: transparent; color: var(--text-muted); font-size: 10px; font-weight: 700; }
+.substitute-list { display: grid; gap: 6px; margin-top: 12px; }
+.substitute-list button { min-height: 56px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface-soft); text-align: left; }
+.substitute-list button:hover { border-color: var(--lime); }
+.substitute-list button span { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.substitute-list strong { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.substitute-list small, .substitute-list > p { color: var(--text-muted); font-size: 9px; }
+.substitute-list > p { margin: 12px 0; text-align: center; }
 .workout-quick-actions { display: flex; gap: 7px; margin: 18px 0 26px; overflow-x: auto; }
 .workout-quick-actions button { position: relative; min-height: 37px; padding: 0 11px; display: flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); color: var(--text-soft); font-size: 9px; white-space: nowrap; }
 .workout-quick-actions .discard-link { color: var(--danger); margin-left: auto; }
@@ -385,6 +405,17 @@ h1, h2, h3 { font-family: 'Manrope', ui-sans-serif, sans-serif; }
 }
 
 .progress-badge { display: flex; align-items: center; gap: 5px; padding: 7px 9px; border-radius: 10px; background: color-mix(in srgb, var(--lime) 12%, var(--surface)); color: var(--lime); font-size: 10px; font-weight: 800; }
+.strength-score-card { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid color-mix(in srgb, var(--lime) 28%, var(--line)); border-radius: 20px; background: var(--surface); }
+.strength-score-card__icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; background: var(--lime); color: var(--lime-ink); }
+.strength-score-card__copy { min-width: 0; display: grid; grid-template-columns: auto 1fr; align-items: end; column-gap: 7px; }
+.strength-score-card__copy .eyebrow { grid-column: 1 / -1; margin-bottom: 3px; }
+.strength-score-card__copy h2 { margin: 0; color: var(--lime); font-size: 31px; line-height: 1; letter-spacing: -.06em; }
+.strength-score-card__copy h2 small { margin-left: 2px; color: var(--text-muted); font-size: 11px; letter-spacing: 0; }
+.strength-score-card__copy strong { padding-bottom: 2px; color: var(--text-soft); font-size: 11px; }
+.strength-score-card__copy span { grid-column: 1 / -1; margin-top: 5px; color: var(--text-muted); font-size: 9px; }
+.strength-score-meter { grid-column: 1 / -1; height: 7px; margin-top: 1px; overflow: hidden; border-radius: 7px; background: var(--surface-strong); }
+.strength-score-meter i { display: block; height: 100%; border-radius: inherit; background: var(--lime); transition: width .45s ease; }
+.strength-score-card__note { grid-column: 1 / -1; margin: -3px 0 0; color: var(--text-muted); font-size: 8px; line-height: 1.4; }
 .chart-card { padding: 17px 14px 10px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 21px; background: var(--surface); overflow: hidden; }
 .chart-card .section-heading { margin: 1px 2px 8px; }
 .chart-card__header { display: flex; justify-content: space-between; align-items: flex-start; padding: 0 3px; }

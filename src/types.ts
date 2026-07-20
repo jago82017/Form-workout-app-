@@ -99,4 +99,6 @@ export interface AppState {
   bodyweight: BodyEntry[];
   photos: PhotoEntry[];
   steps: number;
+  /** Personal setup notes that appear every time an exercise is used. */
+  exerciseNotes?: Record<string, string>;
 }
