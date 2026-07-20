@@ -7,6 +7,17 @@ export interface StrengthScore {
   totalPatterns: number;
 }
 
+export type MuscleFatigueStatus = 'fresh' | 'light' | 'moderate' | 'high';
+
+export interface MuscleFatigue {
+  muscle: string;
+  /** Estimated training fatigue from 0 (fresh) to 100 (high fatigue). */
+  score: number;
+  status: MuscleFatigueStatus;
+  recentSets: number;
+  lastTrainedAt: string;
+}
+
 export const uid = (prefix = 'id') => `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
 
 export const estimate1RM = (weight: number, reps: number) => {
@@ -107,6 +118,55 @@ export const calculateStrengthScore = (state: AppState): StrengthScore => {
   const score = available ? Math.round((earned / available) * 100) : 0;
   const level = score >= 90 ? 'Excellent' : score >= 75 ? 'Strong' : score >= 55 ? 'Solid' : score >= 35 ? 'Building' : score ? 'Starting out' : 'Start logging';
   return { score, level, trackedPatterns, totalPatterns: patterns.length };
+};
+
+/**
+ * Estimates recent direct training fatigue for each muscle from completed sets.
+ * It is a training-load guide, not a medical recovery measurement. Sets decay
+ * across seven days so a hard session today matters more than one last week.
+ */
+export const calculateMuscleFatigue = (
+  state: AppState,
+  exerciseMuscles: Record<string, string>,
+  now = new Date(),
+): MuscleFatigue[] => {
+  const today = new Date(now);
+  today.setHours(0, 0, 0, 0);
+  const dayMs = 24 * 60 * 60 * 1000;
+  const byMuscle = new Map<string, { stress: number; recentSets: number; lastTrainedAt: string }>();
+  const sessions = state.activeWorkout ? [state.activeWorkout, ...state.history] : state.history;
+
+  sessions.forEach((session) => {
+    const trainedAt = session.finishedAt || session.startedAt;
+    const trainedDay = new Date(trainedAt);
+    trainedDay.setHours(0, 0, 0, 0);
+    const daysAgo = Math.floor((today.getTime() - trainedDay.getTime()) / dayMs);
+    if (daysAgo < 0 || daysAgo > 7) return;
+
+    const recency = Math.pow(0.65, daysAgo);
+    session.exercises.forEach((exercise) => {
+      const completedSets = exercise.sets.filter((set) => set.completed);
+      if (!completedSets.length) return;
+      const muscle = exerciseMuscles[exercise.exerciseId] || 'Other';
+      const current = byMuscle.get(muscle) || { stress: 0, recentSets: 0, lastTrainedAt: trainedAt };
+      const typeMultiplier = { 'warm-up': 0.35, normal: 1, drop: 1.1, failure: 1.2 } as const;
+
+      completedSets.forEach((set) => {
+        const rpe = Math.min(10, Math.max(1, set.rpe || 7));
+        const effort = 0.5 + rpe / 20;
+        current.stress += effort * typeMultiplier[set.type] * recency;
+        current.recentSets += 1;
+      });
+      if (new Date(trainedAt) > new Date(current.lastTrainedAt)) current.lastTrainedAt = trainedAt;
+      byMuscle.set(muscle, current);
+    });
+  });
+
+  return [...byMuscle.entries()].map(([muscle, value]) => {
+    const score = Math.min(100, Math.round(value.stress * 8));
+    const status: MuscleFatigueStatus = score >= 70 ? 'high' : score >= 45 ? 'moderate' : score >= 20 ? 'light' : 'fresh';
+    return { muscle, score, status, recentSets: value.recentSets, lastTrainedAt: value.lastTrainedAt };
+  }).sort((a, b) => b.score - a.score || b.recentSets - a.recentSets || a.muscle.localeCompare(b.muscle));
 };
 
 export const isThisWeek = (date: string) => {
