@@ -1,10 +1,10 @@
 import { useMemo, useRef, useState } from 'react';
 import { Area, AreaChart, Bar, CartesianGrid, Cell, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Award, CalendarDays, Camera, ChevronRight, Dumbbell, Pencil, Plus, Scale, Trash2, TrendingUp } from 'lucide-react';
+import { Activity, Award, CalendarDays, Camera, ChevronRight, Dumbbell, Pencil, Plus, Scale, Trash2, TrendingUp } from 'lucide-react';
 import { useApp } from '../AppContext';
 import { exerciseLibrary } from '../data';
 import type { WorkoutSession } from '../types';
-import { calculateStrengthScore, estimate1RM, getRecords, sessionDuration, sessionVolume, uid } from '../utils';
+import { calculateMuscleFatigue, calculateStrengthScore, estimate1RM, getRecords, sessionDuration, sessionVolume, uid } from '../utils';
 import { Button, ConfirmDialog, IconButton, Modal, SectionTitle } from '../components/UI';
 
 type ProgressView = 'overview' | 'history' | 'body';
@@ -24,6 +24,8 @@ export default function Progress() {
   const allExercises = [...exerciseLibrary, ...state.customExercises];
   const records = getRecords(state.history, exerciseNames);
   const strengthScore = useMemo(() => calculateStrengthScore(state), [state.history, state.bodyweight]);
+  const exerciseMuscles = useMemo(() => Object.fromEntries(allExercises.map((exercise) => [exercise.id, exercise.muscle])), [state.customExercises]);
+  const muscleFatigue = useMemo(() => calculateMuscleFatigue(state, exerciseMuscles), [state.history, state.activeWorkout, state.customExercises]);
 
   const chartData = useMemo(() => state.history.slice().reverse().flatMap((session) => {
     const exercise = session.exercises.find((item) => item.exerciseId === exerciseId);
@@ -116,6 +118,17 @@ export default function Progress() {
         <div className="strength-score-card__copy"><p className="eyebrow">FORM STRENGTH SCORE</p><h2>{strengthScore.score}<small>/100</small></h2><strong>{strengthScore.level}</strong><span>Based on {strengthScore.trackedPatterns} of {strengthScore.totalPatterns} movement patterns</span></div>
         <div className="strength-score-meter" role="progressbar" aria-label="FORM strength score" aria-valuemin={0} aria-valuemax={100} aria-valuenow={strengthScore.score}><i style={{ width: `${strengthScore.score}%` }} /></div>
         <p className="strength-score-card__note">A personal progress score using your best estimated lifts relative to your bodyweight.</p>
+      </section>
+      <section className="fatigue-card" aria-labelledby="fatigue-title">
+        <div className="fatigue-card__header"><div><p className="eyebrow">RECOVERY GUIDE</p><h2 id="fatigue-title">Muscle fatigue</h2></div><span>LAST 7 DAYS</span></div>
+        {muscleFatigue.length ? <>
+          <p className="fatigue-card__intro">An estimate from completed direct sets, effort, set type, and how recently you trained each group.</p>
+          <div className="fatigue-list">{muscleFatigue.map((item) => <div className="fatigue-row" key={item.muscle}>
+            <div className="fatigue-row__copy"><strong>{item.muscle}</strong><span>{item.status === 'high' ? 'High fatigue' : item.status === 'moderate' ? 'Recovering' : item.status === 'light' ? 'Light fatigue' : 'Fresh'} / {item.recentSets} sets</span></div>
+            <div className="fatigue-row__indicator"><span className={`fatigue-status fatigue-status--${item.status}`}>{item.score}%</span><div className="fatigue-meter" role="progressbar" aria-label={`${item.muscle} estimated fatigue`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={item.score}><i className={`fatigue-meter__fill fatigue-meter__fill--${item.status}`} style={{ width: `${item.score}%` }} /></div></div>
+          </div>)}</div>
+          <p className="fatigue-card__note">This is a training-load guide, not a medical recovery score. Let sleep, soreness, pain, and how you feel guide your session too.</p>
+        </> : <div className="fatigue-empty"><Activity size={21} /><p>Finish a workout to start seeing each muscle group’s recent training load.</p></div>}
       </section>
       <section className="chart-card main-chart">
         <div className="chart-card__header"><div><p className="eyebrow">STRENGTH TREND</p><h2>{exerciseNames[exerciseId] || 'Exercise'}</h2></div><span>{chartData.at(-1)?.value || 0}<small>{metric === 'reps' ? ' reps' : state.profile.unit}</small></span></div>
