@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Check, ChevronDown, CirclePause, CirclePlay, Clock3, Dumbbell, Flag, Gauge, Info, MoreHorizontal, Plus, RotateCcw, Sparkles, Trash2, Trophy, X } from 'lucide-react';
+import { ArrowDown, ArrowLeft, ArrowLeftRight, ArrowRight, ArrowUp, Check, ChevronDown, CirclePause, CirclePlay, Clock3, Dumbbell, FileText, Flag, Gauge, Info, MoreHorizontal, Plus, RotateCcw, Sparkles, Trash2, Trophy, X } from 'lucide-react';
 import { useApp } from '../AppContext';
 import { exerciseLibrary } from '../data';
-import type { SetType, WorkoutSession, WorkoutSet } from '../types';
+import type { ExerciseDefinition, SetType, WorkoutSession, WorkoutSet } from '../types';
 import { formatTimer, sessionDuration, sessionVolume, uid, wouldBeRecord } from '../utils';
-import { finishWorkout, updateWorkoutSet } from '../workoutLogic';
+import { finishWorkout, substituteWorkoutExercise, updateWorkoutSet } from '../workoutLogic';
 import { Button, ConfirmDialog, IconButton, Modal } from '../components/UI';
 
 const setTypes: SetType[] = ['warm-up', 'normal', 'drop', 'failure'];
@@ -17,6 +17,10 @@ export default function Workout() {
   const [discardOpen, setDiscardOpen] = useState(false);
   const [finishOpen, setFinishOpen] = useState(false);
   const [notesOpen, setNotesOpen] = useState(false);
+  const [setupNoteDraft, setSetupNoteDraft] = useState('');
+  const [substituteOpen, setSubstituteOpen] = useState(false);
+  const [substituteSearch, setSubstituteSearch] = useState('');
+  const [pendingSubstitute, setPendingSubstitute] = useState<ExerciseDefinition | null>(null);
   const [restOpen, setRestOpen] = useState(false);
   const [moreMetrics, setMoreMetrics] = useState(false);
   const [celebration, setCelebration] = useState<string | null>(null);
@@ -49,6 +53,11 @@ export default function Workout() {
   const completedSets = session.exercises.flatMap((exercise) => exercise.sets).filter((set) => set.completed).length;
   const allSets = session.exercises.flatMap((exercise) => exercise.sets).length;
   const elapsed = sessionDuration(session, now);
+  const setupNote = state.exerciseNotes?.[current.exerciseId] || '';
+  const substituteOptions = allExercises.filter((exercise) => {
+    const query = substituteSearch.trim().toLowerCase();
+    return exercise.id !== current.exerciseId && (!query || `${exercise.name} ${exercise.muscle} ${exercise.equipment}`.toLowerCase().includes(query));
+  }).slice(0, 30);
 
   const patchSession = (update: (workout: WorkoutSession) => WorkoutSession) => setState((currentState) => currentState.activeWorkout ? { ...currentState, activeWorkout: update(currentState.activeWorkout) } : currentState);
   const patchSet = (setId: string, changes: Partial<WorkoutSet>) => patchSession((workout) => updateWorkoutSet(workout, exerciseIndex, setId, changes));
@@ -106,6 +115,41 @@ export default function Workout() {
 
   const discard = () => { setState((currentState) => ({ ...currentState, activeWorkout: null })); setDiscardOpen(false); setTab('today'); showToast('Workout discarded'); };
 
+  const openNotes = () => {
+    setSetupNoteDraft(setupNote);
+    setNotesOpen(true);
+  };
+
+  const saveNotes = () => {
+    const note = setupNoteDraft.trim().slice(0, 500);
+    setState((currentState) => {
+      const exerciseNotes = { ...(currentState.exerciseNotes || {}) };
+      if (note) exerciseNotes[current.exerciseId] = note;
+      else delete exerciseNotes[current.exerciseId];
+      return { ...currentState, exerciseNotes };
+    });
+    setNotesOpen(false);
+    showToast(note ? `${definition?.name || 'Exercise'} setup note saved` : 'Setup note cleared');
+  };
+
+  const applySubstitute = (replacement: ExerciseDefinition) => {
+    const loggedSets = current.sets.filter((set) => set.completed);
+    const hasLoggedSets = loggedSets.length > 0;
+    patchSession((workout) => substituteWorkoutExercise(workout, exerciseIndex, replacement.id).workout);
+    if (hasLoggedSets) setExerciseIndex((index) => index + 1);
+    setSubstituteOpen(false); setSubstituteSearch(''); setPendingSubstitute(null);
+    showToast(hasLoggedSets ? `${replacement.name} added for your remaining sets` : `${replacement.name} swapped in`);
+  };
+
+  const chooseSubstitute = (replacement: ExerciseDefinition) => {
+    if (current.sets.some((set) => set.completed)) {
+      setPendingSubstitute(replacement);
+      setSubstituteOpen(false);
+      return;
+    }
+    applySubstitute(replacement);
+  };
+
   return <main className="screen workout-screen">
     {celebration && <div className="pr-celebration" role="status"><div className="spark spark-1" /><div className="spark spark-2" /><div className="spark spark-3" /><Trophy size={32} /><p>NEW PERSONAL RECORD</p><strong>{celebration}</strong></div>}
     <div className="workout-topbar"><div><p className="eyebrow">LIVE SESSION</p><h1>{session.name}</h1></div><div className="workout-topbar__actions"><IconButton label={session.pausedAt ? 'Resume workout' : 'Pause workout'} onClick={togglePause}>{session.pausedAt ? <CirclePlay size={23} /> : <CirclePause size={23} />}</IconButton><Button className="compact" onClick={() => setFinishOpen(true)}>Finish</Button></div></div>
@@ -119,7 +163,9 @@ export default function Workout() {
 
     <section className="current-exercise">
       <div className="exercise-title"><span className="exercise-number">{String(exerciseIndex + 1).padStart(2, '0')}</span><div><p>{definition?.muscle.toUpperCase()} · {definition?.equipment.toUpperCase()}</p><h2>{definition?.name || 'Custom exercise'}</h2><small>{routineExercise?.sets || current.sets.length} sets · {routineExercise?.targetReps || 'your target'} reps</small></div></div>
+      <button className="swap-exercise" onClick={() => setSubstituteOpen(true)}><ArrowLeftRight size={17} /> Swap exercise <span>Change this workout only</span></button>
       <details className="instructions"><summary><Info size={16} /> Form cues <ChevronDown size={16} /></summary><p>{definition?.instructions || 'Use a controlled range of motion and record notes for your preferred setup.'}</p></details>
+      {setupNote ? <section className="setup-note-card" aria-label={`Saved setup note for ${definition?.name || 'exercise'}`}><FileText size={18} /><div><p>YOUR SETUP NOTE</p><strong>{setupNote}</strong></div><button onClick={openNotes}>Edit</button></section> : <button className="add-setup-note" onClick={openNotes}><FileText size={17} /> Add a setup note <span>Bench angle, seat position, cues…</span></button>}
     </section>
 
     <section className="set-table">
@@ -139,12 +185,14 @@ export default function Workout() {
       <div className="set-actions"><button onClick={addSet}><Plus size={17} /> Add set</button><button onClick={() => setMoreMetrics(!moreMetrics)}><MoreHorizontal size={17} /> {moreMetrics ? 'Less' : 'More metrics'}</button></div>
     </section>
 
-    <div className="workout-quick-actions"><button onClick={() => setNotesOpen(true)}><PencilIcon /> Notes{current.note && <i />}</button><button onClick={() => setRestOpen(true)}><RotateCcw size={17} /> Rest timer</button><button className="discard-link" onClick={() => setDiscardOpen(true)}><Trash2 size={17} /> Discard</button></div>
+    <div className="workout-quick-actions"><button onClick={openNotes}><PencilIcon /> Notes{(current.note || setupNote) && <i />}</button><button onClick={() => setRestOpen(true)}><RotateCcw size={17} /> Rest timer</button><button className="discard-link" onClick={() => setDiscardOpen(true)}><Trash2 size={17} /> Discard</button></div>
 
     <div className="exercise-navigation"><Button variant="secondary" onClick={() => setExerciseIndex(Math.max(0, exerciseIndex - 1))} disabled={exerciseIndex === 0}><ArrowLeft size={18} /> Previous</Button>{exerciseIndex === session.exercises.length - 1 ? <Button onClick={() => setFinishOpen(true)}>Finish <Flag size={18} /></Button> : <Button onClick={() => setExerciseIndex(exerciseIndex + 1)}>Next <ArrowRight size={18} /></Button>}</div>
 
-    <Modal open={notesOpen} onClose={() => setNotesOpen(false)} title="Workout notes" footer={<Button onClick={() => setNotesOpen(false)}>Done</Button>}><label className="field"><span>{definition?.name} notes</span><textarea rows={3} value={current.note || ''} placeholder="Setup, cues, or how it felt…" onChange={(event) => patchSession((workout) => ({ ...workout, exercises: workout.exercises.map((exercise, index) => index === exerciseIndex ? { ...exercise, note: event.target.value } : exercise) }))} /></label><label className="field"><span>Session notes</span><textarea rows={3} value={session.note} placeholder="A note about today’s workout…" onChange={(event) => patchSession((workout) => ({ ...workout, note: event.target.value }))} /></label></Modal>
+    <Modal open={notesOpen} onClose={() => setNotesOpen(false)} title={`Notes for ${definition?.name || 'exercise'}`} footer={<Button onClick={saveNotes}>Save notes</Button>}><label className="field"><span>Saved setup note</span><textarea rows={3} maxLength={500} value={setupNoteDraft} placeholder="For example: Set the bench to 60° and keep elbows slightly forward." onChange={(event) => setSetupNoteDraft(event.target.value)} /><small className="field-help">This appears every time you do this exercise, including future workouts.</small></label><label className="field"><span>This workout only</span><textarea rows={3} maxLength={500} value={current.note || ''} placeholder="How this exercise felt today, or a change you made today…" onChange={(event) => patchSession((workout) => ({ ...workout, exercises: workout.exercises.map((exercise, index) => index === exerciseIndex ? { ...exercise, note: event.target.value } : exercise) }))} /></label><label className="field"><span>Whole workout notes</span><textarea rows={3} maxLength={1000} value={session.note} placeholder="A note about today’s entire workout…" onChange={(event) => patchSession((workout) => ({ ...workout, note: event.target.value }))} /></label></Modal>
+    <Modal open={substituteOpen} onClose={() => { setSubstituteOpen(false); setSubstituteSearch(''); }} title="Swap exercise"><p className="modal-copy">Choose a replacement for this workout only. Your saved plan will not change.</p><label className="search-field"><span className="sr-only">Search exercises</span><input autoFocus placeholder="Search exercises, muscles, or equipment" value={substituteSearch} onChange={(event) => setSubstituteSearch(event.target.value)} /></label><div className="substitute-list">{substituteOptions.map((exercise) => <button key={exercise.id} onClick={() => chooseSubstitute(exercise)}><span><strong>{exercise.name}</strong><small>{exercise.muscle} · {exercise.equipment}</small></span><ArrowRight size={18} /></button>)}{!substituteOptions.length && <p>No matching exercises. Add a custom exercise from Plans first.</p>}</div></Modal>
     <Modal open={restOpen} onClose={() => setRestOpen(false)} title="Rest timer"><p className="modal-copy">Choose a rest period. The timer stays visible while you move around FORM.</p><div className="rest-presets">{[30, 60, 90, 120, 180].map((seconds) => <button key={seconds} onClick={() => { startRest(seconds); setRestOpen(false); }}>{formatTimer(seconds)}</button>)}</div></Modal>
+    <ConfirmDialog open={!!pendingSubstitute} onClose={() => setPendingSubstitute(null)} title="Keep your logged sets?" body={`You have already logged ${current.sets.filter((set) => set.completed).length} ${definition?.name || 'exercise'} set(s). FORM will keep those and add ${pendingSubstitute?.name || 'the substitute'} for the remaining work.`} confirmLabel="Add substitute" onConfirm={() => { if (pendingSubstitute) applySubstitute(pendingSubstitute); }} />
     <ConfirmDialog open={discardOpen} onClose={() => setDiscardOpen(false)} title="Discard workout?" body="This active session and all its set data will be removed. Finished workouts are not affected." confirmLabel="Discard workout" destructive onConfirm={discard} />
     <Modal open={finishOpen} onClose={() => setFinishOpen(false)} title="Finish workout?" footer={<><Button variant="secondary" onClick={() => setFinishOpen(false)}>Keep training</Button><Button onClick={finish}>Save workout</Button></>}><div className="finish-summary"><Sparkles size={26} /><strong>{completedSets} sets complete</strong><p>{formatTimer(elapsed / 1000)} training · {Math.round(sessionVolume(session)).toLocaleString()} {state.profile.unit} volume</p></div></Modal>
   </main>;

@@ -4,7 +4,7 @@ import { Award, CalendarDays, Camera, ChevronRight, Dumbbell, Pencil, Plus, Scal
 import { useApp } from '../AppContext';
 import { exerciseLibrary } from '../data';
 import type { WorkoutSession } from '../types';
-import { estimate1RM, getRecords, sessionDuration, sessionVolume, uid } from '../utils';
+import { calculateStrengthScore, estimate1RM, getRecords, sessionDuration, sessionVolume, uid } from '../utils';
 import { Button, ConfirmDialog, IconButton, Modal, SectionTitle } from '../components/UI';
 
 type ProgressView = 'overview' | 'history' | 'body';
@@ -16,12 +16,14 @@ export default function Progress() {
   const firstExercise = state.history.flatMap((session) => session.exercises)[0]?.exerciseId || 'bench-press';
   const [exerciseId, setExerciseId] = useState(firstExercise);
   const [metric, setMetric] = useState<Metric>('estimated1RM');
+  const [historyLimit, setHistoryLimit] = useState(30);
   const [editing, setEditing] = useState<WorkoutSession | null>(null);
   const [deleteSession, setDeleteSession] = useState<WorkoutSession | null>(null);
   const [bodyWeight, setBodyWeight] = useState('');
   const photoInput = useRef<HTMLInputElement>(null);
   const allExercises = [...exerciseLibrary, ...state.customExercises];
   const records = getRecords(state.history, exerciseNames);
+  const strengthScore = useMemo(() => calculateStrengthScore(state), [state.history, state.bodyweight]);
 
   const chartData = useMemo(() => state.history.slice().reverse().flatMap((session) => {
     const exercise = session.exercises.find((item) => item.exerciseId === exerciseId);
@@ -109,6 +111,12 @@ export default function Progress() {
     <div className="segmented segmented--three"><button className={view === 'overview' ? 'active' : ''} onClick={() => setView('overview')}>Overview</button><button className={view === 'history' ? 'active' : ''} onClick={() => setView('history')}>History</button><button className={view === 'body' ? 'active' : ''} onClick={() => setView('body')}>Body</button></div>
 
     {view === 'overview' && <>
+      <section className="strength-score-card">
+        <div className="strength-score-card__icon"><Dumbbell size={22} /></div>
+        <div className="strength-score-card__copy"><p className="eyebrow">FORM STRENGTH SCORE</p><h2>{strengthScore.score}<small>/100</small></h2><strong>{strengthScore.level}</strong><span>Based on {strengthScore.trackedPatterns} of {strengthScore.totalPatterns} movement patterns</span></div>
+        <div className="strength-score-meter" role="progressbar" aria-label="FORM strength score" aria-valuemin={0} aria-valuemax={100} aria-valuenow={strengthScore.score}><i style={{ width: `${strengthScore.score}%` }} /></div>
+        <p className="strength-score-card__note">A personal progress score using your best estimated lifts relative to your bodyweight.</p>
+      </section>
       <section className="chart-card main-chart">
         <div className="chart-card__header"><div><p className="eyebrow">STRENGTH TREND</p><h2>{exerciseNames[exerciseId] || 'Exercise'}</h2></div><span>{chartData.at(-1)?.value || 0}<small>{metric === 'reps' ? ' reps' : state.profile.unit}</small></span></div>
         <div className="chart-controls"><select value={exerciseId} onChange={(event) => setExerciseId(event.target.value)}>{availableExercises.map((id) => <option key={id} value={id}>{exerciseNames[id] || id}</option>)}</select><select value={metric} onChange={(event) => setMetric(event.target.value as Metric)}><option value="estimated1RM">Est. 1RM</option><option value="weight">Weight</option><option value="reps">Reps</option><option value="volume">Volume</option></select></div>
@@ -125,7 +133,8 @@ export default function Progress() {
     {view === 'history' && <>
       <section className="calendar-card"><div className="calendar-card__header"><span><CalendarDays size={19} /></span><div><strong>Last 4 weeks</strong><small>{calendarDays.filter((day) => day.complete).length} sessions completed</small></div></div><div className="mini-calendar">{calendarDays.map((day) => <span key={day.date.toISOString()} className={day.complete ? 'trained' : day.date.toDateString() === new Date().toDateString() ? 'today' : ''} title={day.date.toLocaleDateString()}>{day.date.getDate()}</span>)}</div><div className="calendar-legend"><span><i className="trained" /> Trained</span><span><i /> Rest</span></div></section>
       <SectionTitle eyebrow="ALL SESSIONS" title="Workout history" action={<span className="count-pill">{state.history.length}</span>} />
-      <div className="history-list">{state.history.map((session) => <button key={session.id} onClick={() => setEditing({ ...session })}><span className="history-date"><strong>{new Date(session.startedAt).getDate()}</strong><small>{new Date(session.startedAt).toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()}</small></span><span className="history-copy"><strong>{session.name}</strong><small>{session.exercises.length} exercises · {session.exercises.flatMap((item) => item.sets).filter((set) => set.completed).length} sets</small></span><span className="history-meta"><strong>{Math.round(sessionVolume(session)).toLocaleString()} {state.profile.unit}</strong><small>{Math.round(sessionDuration(session) / 60000)} min</small></span><ChevronRight size={18} /></button>)}</div>
+      <div className="history-list">{state.history.slice(0, historyLimit).map((session) => <button key={session.id} onClick={() => setEditing({ ...session })}><span className="history-date"><strong>{new Date(session.startedAt).getDate()}</strong><small>{new Date(session.startedAt).toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()}</small></span><span className="history-copy"><strong>{session.name}</strong><small>{session.exercises.length} exercises · {session.exercises.flatMap((item) => item.sets).filter((set) => set.completed).length} sets</small></span><span className="history-meta"><strong>{Math.round(sessionVolume(session)).toLocaleString()} {state.profile.unit}</strong><small>{Math.round(sessionDuration(session) / 60000)} min</small></span><ChevronRight size={18} /></button>)}</div>
+      {state.history.length > historyLimit && <Button variant="secondary" className="full-button" onClick={() => setHistoryLimit((current) => current + 30)}>Load older workouts ({state.history.length - historyLimit} remaining)</Button>}
     </>}
 
     {view === 'body' && <>
